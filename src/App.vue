@@ -1,22 +1,15 @@
-<script>
-import AppHeader from "@/components/AppHeader.vue";
-export default {
-components: {
-AppHeader,
-},
-};
-</script>
 <template>
-<div id="app">
-<AppHeader />
-<div class="container mt-3">
-<router-view />
-</div>
-</div>
+  <div>
+    <nav class="navbar navbar-dark bg-dark">
+      <div class="container-fluid">
+        <router-link to="/" class="navbar-brand">
+          Ứng dụng Quản lý danh bạ
+        </router-link>
+      </div>
+    </nav>
+
+    <div class="container mt-3">
+      <router-view />
+    </div>
+  </div>
 </template>
-<style>
-.page {
-max-width: 400px;
-margin: auto;
-}
-</style>

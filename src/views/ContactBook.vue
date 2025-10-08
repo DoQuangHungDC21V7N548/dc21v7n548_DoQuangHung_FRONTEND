@@ -1,142 +1,105 @@
-<!-- src/views/ContactBook.vue -->
 <template>
- <div class="page row">
-  <div class="col-md-10">
-   <InputSearch v-model="searchText" />
-  </div>
-  <div class="mt-3 col-md-6">
-   <h4>
-    Danh bạ
-    <i class="fas fa-address-book"></i>
-   </h4>
-   <ContactList
-    v-if="filteredContactsCount > 0"
-    :contacts="filteredContacts"
-    v-model:activeIndex="activeIndex"
-   />
-   <p v-else>Không có liên hệ nào.</p>
+  <div class="page">
+    <InputSearch @search="searchText = $event" />
 
-   <div class="mt-3 row justify-content-around align-items-center">
-    <button class="btn btn-sm btn-primary" @click="refreshList()">
-     <i class="fas fa-redo"></i> Làm mới
-    </button>
+    <div class="row mt-3">
+      <div class="col-md-6">
+        <h5>Danh bạ <i class="fa fa-address-book"></i></h5>
+        <ContactList
+          :contacts="filteredContacts"
+          :activeIndex="activeIndex"
+          :searchText="searchText"
+          @select="selectContact"
+        />
+      </div>
 
-    <button class="btn btn-sm btn-success" @click="goToAddContact">
-     <i class="fas fa-plus"></i> Thêm mới
-    </button>
+      <div class="col-md-6">
+        <h5>Chi tiết Liên hệ <i class="fa fa-id-card"></i></h5>
+        <ContactCard :contact="activeContact" />
+      </div>
+    </div>
 
-    <button
-     class="btn btn-sm btn-danger"
-     @click="removeAllContacts"
-    >
-     <i class="fas fa-trash"></i> Xóa tất cả
-    </button>
-   </div>
+    <div class="mt-3">
+      <button @click="refreshList" class="btn btn-primary">
+        <i class="fa fa-sync"></i> Làm mới
+      </button>
+
+      <button @click="goToAdd" class="btn btn-success ms-2">
+        <i class="fa fa-plus"></i> Thêm mới
+      </button>
+
+      <button @click="removeAllContacts" class="btn btn-danger ms-2">
+        <i class="fa fa-trash"></i> Xóa tất cả
+      </button>
+    </div>
   </div>
-  <div class="mt-3 col-md-6">
-   <div v-if="activeContact">
-    <h4>
-     Chi tiết Liên hệ
-     <i class="fas fa-address-card"></i>
-    </h4>
-    <ContactCard :contact="activeContact" />
-   </div>
-  </div>
- </div>
 </template>
 
 <script>
-import ContactCard from "@/components/ContactCard.vue";
 import InputSearch from "@/components/InputSearch.vue";
 import ContactList from "@/components/ContactList.vue";
+import ContactCard from "@/components/ContactCard.vue";
 import ContactService from "@/services/contact.service";
 
 export default {
- components: {
-  ContactCard,
-  InputSearch,
-  ContactList,
- },
-
- data() {
-  return {
-   contacts: [],
-   activeIndex: -1,
-   searchText: "",
-  };
- },
-
- watch: {
-  // Giám sát các thay đổi của biến searchText.
-  // Bỏ chọn phần tử đang được chọn trong danh sách.
-  searchText() {
-   this.activeIndex = -1;
+  name: "ContactBook",
+  components: { InputSearch, ContactList, ContactCard },
+  data() {
+    return {
+      contacts: [],
+      activeIndex: -1,
+      searchText: "",
+    };
   },
- },
-
- computed: {
-  // Chuyển các đối tượng contact thành chuỗi để tiện cho tìm kiếm.
-  contactStrings() {
-   return this.contacts.map((contact) => {
-    const { name, email, address, phone } = contact;
-    return [name, email, address, phone].join("");
-   });
+  computed: {
+    filteredContacts() {
+      if (!this.searchText) return this.contacts;
+      const text = this.searchText.toLowerCase();
+      return this.contacts.filter(
+        (c) =>
+          c.name.toLowerCase().includes(text) ||
+          (c.email && c.email.toLowerCase().includes(text)) ||
+          (c.address && c.address.toLowerCase().includes(text))
+      );
+    },
+    activeContact() {
+      return this.activeIndex >= 0 ? this.filteredContacts[this.activeIndex] : null;
+    },
   },
-  // Trả về các contact có chứa thông tin cần tìm kiếm.
-  filteredContacts() {
-   if (!this.searchText) return this.contacts;
-   return this.contacts.filter((_contact, index) =>
-    this.contactStrings[index].includes(this.searchText)
-   );
+  methods: {
+    async retrieveContacts() {
+      try {
+        this.contacts = await ContactService.getAll();
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    refreshList() {
+      this.retrieveContacts();
+      this.activeIndex = -1;
+    },
+    selectContact(contact, index) {
+      this.activeIndex = index;
+    },
+    async removeAllContacts() {
+      if (confirm("Xóa tất cả liên hệ?")) {
+        await ContactService.deleteAll();
+        this.refreshList();
+      }
+    },
+    goToAdd() {
+      this.$router.push({ name: "contact.edit", params: { id: "add" } });
+    },
   },
-  activeContact() {
-   if (this.activeIndex < 0) return null;
-   return this.filteredContacts[this.activeIndex];
+  mounted() {
+    this.retrieveContacts();
   },
-  filteredContactsCount() {
-   return this.filteredContacts.length;
-  },
- },
-
- methods: {
-  async retrieveContacts() {
-   try {
-    this.contacts = await ContactService.getAll();
-   } catch (error) {
-    console.log(error);
-   }
-  },
-
-  refreshList() {
-   this.retrieveContacts();
-   this.activeIndex = -1;
-  },
-
-  async removeAllContacts() {
-   if (confirm("Bạn muốn xóa tất cả Liên hệ?")) {
-    try {
-     await ContactService.deleteAll();
-     this.refreshList();
-    } catch (error) {
-     console.log(error);
-    }
-   }
-  },
-
-  goToAddContact() {
-   this.$router.push({ name: "contact.add" });
-  },
- },
-
- mounted() {
-  this.refreshList();
- },
 };
 </script>
 
 <style scoped>
 .page {
- text-align: left;
- max-width: 750px;
+  max-width: 900px;
+  margin: auto;
 }
 </style>
