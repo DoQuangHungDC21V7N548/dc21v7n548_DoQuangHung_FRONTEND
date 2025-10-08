@@ -1,14 +1,18 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import path from "path"; 
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  resolve: { 
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   server: {
-    // Cấu hình Port cho ứng dụng frontend
+    // Cấu hình port và proxy đã có
     port: 3001,
-    
-    // Cấu hình Proxy để chuyển tiếp yêu cầu /api sang server backend (API chạy ở 3000)
     proxy: {
       "/api": {
         target: "http://localhost:3000/",
